@@ -8,11 +8,5 @@ updates:
       "github-actions":
         patterns:
           - "*"
-  - package-ecosystem: "bundler"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    groups:
-      "bundler":
-        patterns:
-          - "*"
+# No bundler entry: the Gemfile picks the Vagrant source tag from VAGRANT_VERSION (the CI
+# matrix tests several Vagrant releases), which Dependabot cannot evaluate.
