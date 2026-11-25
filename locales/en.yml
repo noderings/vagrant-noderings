@@ -1,0 +1,47 @@
+en:
+  vagrant_noderings:
+    already_created: |-
+      The server already exists and is running.
+    already_stopped: |-
+      The server is already stopped.
+    not_created: |-
+      The server is not created. Run `vagrant up` first.
+    will_not_destroy: |-
+      The server '%{name}' will not be destroyed, since the confirmation was declined.
+    ordering: |-
+      Ordering NodeRings server %{hostname} (%{offer}, %{distro})...
+    ordered: |-
+      Server %{id} ordered. Waiting for it to be provisioned...
+    address: |-
+      The server has address %{address}.
+    waiting_for_ssh: |-
+      Waiting for SSH to answer...
+    ready: |-
+      Machine is booted and ready for use!
+    starting: |-
+      Starting the server...
+    stopping: |-
+      Stopping the server. Its disk and IP addresses are kept.
+    destroying: |-
+      Deleting the server and its temporary SSH key...
+
+    states:
+      short_not_created: |-
+        not created
+      long_not_created: |-
+        The server does not exist. Run `vagrant up` to order it.
+      short_running: |-
+        running
+      long_running: |-
+        The server is running. Use `vagrant ssh` to log in, or `vagrant halt` to stop it.
+      short_stopped: |-
+        stopped
+      long_stopped: |-
+        The server is stopped. Its disk and IP addresses are kept. Run `vagrant up`
+        to start it, or `vagrant destroy` to delete it.
+
+    errors:
+      api_error: |-
+        NodeRings: %{action}: %{message}
+      no_address: |-
+        The server has no IP address yet. Run `vagrant destroy` and try again.

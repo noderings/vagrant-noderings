@@ -1,0 +1,26 @@
+---
+AllCops:
+  TargetRubyVersion: 3.0
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "vendor/**/*"
+    - "pkg/**/*"
+    # Generated from the shared NodeRings API code; see CONTRIBUTING.md.
+    - "lib/vagrant-noderings/api/**/*"
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/Documentation:
+  Enabled: false
+
+Metrics:
+  Enabled: false
+
+Layout/LineLength:
+  Max: 140
+
+Naming/FileName:
+  Exclude:
+    - "lib/vagrant-noderings.rb"
