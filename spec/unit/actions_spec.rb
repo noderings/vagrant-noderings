@@ -32,7 +32,7 @@ describe "vagrant-noderings actions" do
       expect(body["hostname"]).to match(/\Avagrant-default-[a-z0-9]{6}\z/)
       expect(key["publicKey"]).to start_with("ssh-rsa ")
       expect(machine.id).to eq vm["id"]
-      expect(File.stat(machine.data_dir.join("noderings/id_rsa")).mode & 0o777).to eq 0o600
+      expect(File.stat(machine.data_dir.join("state/id_rsa")).mode & 0o777).to eq 0o600
       expect(@fake.calls.last[4]["User-Agent"]).to start_with("vagrant-noderings/")
     end
 
@@ -64,7 +64,7 @@ describe "vagrant-noderings actions" do
       expect(run_action(action::ReadState, env)[:machine_state_id]).to eq :stopped
       info = run_action(action::ReadSSHInfo, env)[:machine_ssh_info]
       expect(info).to eq(host: "192.0.2.50", port: 22, username: "root",
-                         private_key_path: [machine.data_dir.join("noderings/id_rsa").to_s])
+                         private_key_path: [machine.data_dir.join("state/id_rsa").to_s])
     end
 
     it "forgets a server deleted outside Vagrant" do
@@ -87,7 +87,7 @@ describe "vagrant-noderings actions" do
       expect(@fake.vms).to be_empty
       expect(@fake.ssh_keys).to be_empty
       expect(machine.id).to be_nil
-      expect(machine.data_dir.join("noderings")).not_to exist
+      expect(machine.data_dir.join("state")).not_to exist
     end
 
     it "keeps the hostname and key across runs" do
@@ -108,7 +108,7 @@ describe "vagrant-noderings actions" do
       File.write(pub, session.public_key)
       fingerprint, status = Open3.capture2e("ssh-keygen", "-l", "-f", pub)
       expect(status.success?).to be true
-      derived = `ssh-keygen -y -f #{machine.data_dir.join("noderings/id_rsa")} 2>&1`.split[0, 2]
+      derived = `ssh-keygen -y -f #{machine.data_dir.join("state/id_rsa")} 2>&1`.split[0, 2]
       expect(session.public_key.split[0, 2]).to eq derived
       expect(fingerprint).to include("RSA")
     end

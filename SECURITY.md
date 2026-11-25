@@ -16,4 +16,4 @@ Security fixes are made for the latest minor release.
 
 ## Handling credentials
 
-The provider reads the NodeRings service account token from `provider.token` or the `NODERINGS_TOKEN` environment variable. Prefer the environment variable, so the token never lands in a `Vagrantfile` that gets committed, and give the service account the narrowest NodeRings role that covers what you create. The private key the provider generates for each machine is kept in `.vagrant/machines/<name>/noderings/` with mode 0600 and deleted on `vagrant destroy`; keep `.vagrant/` out of version control.
+The provider reads the NodeRings service account token from `provider.token` or the `NODERINGS_TOKEN` environment variable. Prefer the environment variable, so the token never lands in a `Vagrantfile` that gets committed, and give the service account the narrowest NodeRings role that covers what you create. The private key the provider generates for each machine is kept in `.vagrant/machines/<name>/noderings/state/` with mode 0600 and deleted on `vagrant destroy`; keep `.vagrant/` out of version control.

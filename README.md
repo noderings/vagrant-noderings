@@ -89,7 +89,7 @@ To see which plans are sold where, use the NodeRings console marketplace, or
 ### SSH keys
 
 By default the provider generates an RSA key for each machine in
-`.vagrant/machines/<name>/noderings/`, uploads its public half to NodeRings as a
+`.vagrant/machines/<name>/noderings/state/`, uploads its public half to NodeRings as a
 temporary key, logs in with it, and deletes both on `vagrant destroy`.
 
 To use keys already stored in NodeRings, list them in `ssh_keys` and point Vagrant at

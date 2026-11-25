@@ -10,7 +10,7 @@ module VagrantPlugins
         end
 
         def call(env)
-          Session.new(env[:machine]).cleanup if env[:machine].data_dir.join("noderings").exist?
+          Session.new(env[:machine]).cleanup if env[:machine].data_dir.join("state").exist?
           @app.call(env)
         end
       end

@@ -46,7 +46,7 @@ module VagrantPlugins
       end
 
       def dir
-        path = machine.data_dir.join("noderings")
+        path = machine.data_dir.join("state")
         FileUtils.mkdir_p(path)
         path
       end
