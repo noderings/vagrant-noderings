@@ -8,6 +8,8 @@ A [Vagrant](https://www.vagrantup.com) provider for [NodeRings](https://nodering
 your development and test machines on NodeRings virtual machines with the usual
 `vagrant up`, `vagrant ssh` and `vagrant destroy`.
 
+New to it? The step-by-step guide [How to use Vagrant on NodeRings: a cloud VPS as a disposable dev box](https://noderings.com/blog/vagrant-vps) walks through a first run.
+
 ```ruby
 Vagrant.configure("2") do |config|
   config.vm.provider :noderings do |provider|
