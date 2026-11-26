@@ -46,6 +46,39 @@ describe "vagrant-noderings actions" do
       expect(@fake.ssh_keys.length).to eq 1
     end
 
+    context "with hosting_provider" do
+      def up_from(provider)
+        env[:machine] = FakeMachine.new(provider_config(hosting_provider: provider), @data_dir)
+        run_action(action::CreateServer, env)
+      end
+
+      [FakeNoderings::ACME_ID, "acme-hosting", "Acme Hosting", "  acme HOSTING "].each do |provider|
+        it "orders from the provider given as #{provider.inspect}" do
+          up_from(provider)
+          expect(@fake.created_vm_bodies.last).to include("planId" => FakeNoderings::ACME_PLAN_ID,
+                                                          "regionId" => FakeNoderings::ACME_REGION_ID)
+        end
+      end
+
+      it "orders the cheapest offer without one" do
+        up
+        expect(@fake.created_vm_bodies.last["planId"]).to eq FakeNoderings::PLAN_ID
+      end
+
+      it "fails for an unknown provider" do
+        expect { up_from("Nobody Hosting") }
+          .to raise_error(VagrantPlugins::Noderings::Errors::APIError, /from provider Nobody Hosting/)
+        expect(@fake.created_vm_bodies).to be_empty
+      end
+
+      it "refuses a provider name two providers share" do
+        @fake.extra_providers << FakeNoderings::ACME_OFFER.merge("organizationId" => "66666666-6666-6666-6666-666666666666")
+        expect { up_from("acme hosting") }
+          .to raise_error(VagrantPlugins::Noderings::Errors::APIError, /more than one provider is named acme hosting/)
+        expect(@fake.created_vm_bodies).to be_empty
+      end
+    end
+
     it "explains an offer that does not exist" do
       env[:machine] = FakeMachine.new(provider_config(city: "Nowhere"), @data_dir)
       expect { run_action(action::CreateServer, env) }

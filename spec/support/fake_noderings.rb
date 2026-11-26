@@ -11,10 +11,21 @@ require "uri"
 class FakeNoderings
   PLAN_ID = "11111111-1111-1111-1111-111111111111"
   REGION_ID = "22222222-2222-2222-2222-222222222222"
+  ACME_ID = "33333333-3333-3333-3333-333333333333"
+  ACME_PLAN_ID = "44444444-4444-4444-4444-444444444444"
+  ACME_REGION_ID = "55555555-5555-5555-5555-555555555555"
+  ACME_OFFER = {
+    "organizationId" => ACME_ID, "organizationName" => "Acme Hosting", "planId" => ACME_PLAN_ID,
+    "planRegions" => [{ "country" => "United States", "city" => "Ashburn", "regionId" => ACME_REGION_ID }],
+    "capabilities" => [], "rating" => 3,
+    "planPrices" => [{ "unitAmount" => "0.012", "unitName" => "per compute-hour" }]
+  }.freeze
 
   attr_reader :calls, :ssh_keys, :zones, :records, :rulesets, :rules, :groups, :vms, :created_vm_bodies
   # Status codes to return before handling the next matching request: { 'POST /v1/virtual-machines' => [502] }
   attr_reader :failures
+  # More provider offers to list, such as a second provider with the same name.
+  attr_reader :extra_providers
 
   def initialize
     @calls = []
@@ -27,6 +38,7 @@ class FakeNoderings
     @vms = {}
     @created_vm_bodies = []
     @failures = Hash.new { |h, k| h[k] = [] }
+    @extra_providers = []
     @routes = [
       ["GET", %r{\A/v1/organization\z}, :get_org],
       ["GET", %r{\A/v1/ssh-keys\z}, :list_keys],
@@ -52,6 +64,8 @@ class FakeNoderings
       ["DELETE", %r{\A/v1/firewall/rules/([^/]+)\z}, :delete_rule],
       ["POST", %r{\A/v1/firewall/rules/([^/]+)/move\z}, :move_rule],
       ["GET", %r{\A/v1/marketplace/providers\z}, :list_providers],
+      ["GET", %r{\A/v1/marketplace/providers/([^/]+)\z}, :get_provider],
+      ["GET", %r{\A/v1/public/storefronts/([^/]+)\z}, :get_storefront],
       ["GET", %r{\A/v1/marketplace/plans/([^/]+)\z}, :get_plan],
       ["GET", %r{\A/v1/marketplace/plans\z}, :list_plans],
       ["GET", %r{\A/v1/marketplace/regions\z}, :list_regions],
@@ -136,8 +150,28 @@ class FakeNoderings
         "capabilities" => ["guest_firewall"], "rating" => 4,
         "planPrices" => [{ "unitAmount" => "0.007", "unitName" => "per compute-hour" },
                          { "unitAmount" => "0.0001", "unitName" => "per GB-hour storage" }]
-      }
-    ] }]
+      },
+      ACME_OFFER
+    ] + @extra_providers }]
+  end
+
+  def get_provider(_query, _body, provider_id)
+    return err(404, 5, "provider not found") unless provider_id == ACME_ID
+
+    [200, { "provider" => {
+      "provider" => { "organizationId" => ACME_ID, "organizationName" => "Acme Hosting", "rating" => 3 },
+      "availablePlans" => [{
+        "planId" => ACME_PLAN_ID, "planCode" => "SC-GC-1C-1G-20", "billingType" => "BILLING_TYPE_USAGE",
+        "assetType" => "ASSET_TYPE_VM", "planPrices" => ACME_OFFER["planPrices"],
+        "regions" => [{ "country" => "United States", "city" => "Ashburn", "regionId" => ACME_REGION_ID }]
+      }]
+    } }]
+  end
+
+  def get_storefront(_query, _body, slug)
+    return err(404, 5, "storefront not found") unless slug == "acme-hosting"
+
+    [200, { "storefront" => { "slug" => slug, "providerId" => ACME_ID } }]
   end
 
   # -- SSH keys ----------------------------------------------------------------

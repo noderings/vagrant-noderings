@@ -46,7 +46,8 @@ module VagrantPlugins
 
           plan_id, region_id, offer = session.call("finding an offer") do
             session.compute.choose_offer(session.client, config.plan, config.country, config.city,
-                                         billing_type: config.billing_type, provider_id: config.provider_id, sort: config.sort)
+                                         billing_type: config.billing_type, provider_id: config.provider_id, sort: config.sort,
+                                         provider: config.hosting_provider)
           end
           [plan_id, region_id, "#{config.plan} from #{offer['provider_name']} in #{config.city}, #{config.country}"]
         end
