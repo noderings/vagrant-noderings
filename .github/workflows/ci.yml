@@ -12,8 +12,9 @@ permissions:
 jobs:
   test:
     name: Ruby ${{ matrix.ruby }}, Vagrant ${{ matrix.vagrant }}
-    # Pushes to main run on the org runner; pull requests and everything else stay GitHub-hosted.
-    runs-on: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && fromJSON('["self-hosted","linux","x64"]') || 'ubuntu-latest' }}
+    # Stays GitHub-hosted: ruby/setup-ruby needs a writable /opt/hostedtoolcache, which
+    # the self-hosted runner does not have yet.
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
