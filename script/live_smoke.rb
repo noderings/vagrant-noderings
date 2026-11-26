@@ -6,7 +6,7 @@
 
 require_relative "../lib/vagrant-noderings/api/client"
 
-token = NoderingsVagrant::TOKEN_ENV_VARS.map { |k| ENV[k] }.find { |v| !v.to_s.empty? }
+token = NoderingsVagrant::TOKEN_ENV_VARS.map { |k| ENV.fetch(k, nil) }.find { |v| !v.to_s.empty? }
 if token.to_s.empty?
   warn "NODERINGS_TOKEN is not set; skipping live smoke."
   exit 0
