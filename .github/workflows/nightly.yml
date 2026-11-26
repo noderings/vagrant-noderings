@@ -1,0 +1,32 @@
+# Nightly read-only API smoke for the Vagrant provider client. Runs only when
+# the NODERINGS_TOKEN secret is set; otherwise the job skips with a notice
+# and succeeds. Does not call vagrant up (that would order a billed VM).
+name: Nightly live API
+
+"on":
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODERINGS_TOKEN: ${{ secrets.NODERINGS_TOKEN }}
+    steps:
+      - name: Skip when NODERINGS_TOKEN is not set
+        if: env.NODERINGS_TOKEN == ''
+        run: echo "::notice title=Live tests skipped::Add the repository secret NODERINGS_TOKEN (a service account token for a test organization) to run them."
+      - uses: actions/checkout@v7
+        if: env.NODERINGS_TOKEN != ''
+      - name: Read-only API smoke
+        if: env.NODERINGS_TOKEN != ''
+        run: ruby script/live_smoke.rb
