@@ -52,10 +52,40 @@ module NoderingsVagrant
       region["country"].to_s.casecmp?(country.to_s) && region["city"].to_s.casecmp?(city.to_s)
     end
 
+    SLUG_RE = /\A[a-z0-9-]{1,80}\z/
+
+    # A provider ID, storefront slug or provider name -> [provider_id, name].
+    #
+    # An ID, or a slug that names a public storefront, gives the provider ID.
+    # Anything else is a provider name, matched without regard to case
+    # against the offers.
+    def resolve_provider(client, provider)
+      value = provider.to_s.strip
+      return [nil, nil] if value.empty?
+      return [value, nil] if NoderingsVagrant.uuid?(value)
+
+      provider_id = SLUG_RE.match?(value) ? storefront_provider_id(client, value) : ""
+      provider_id.empty? ? [nil, value] : [provider_id, nil]
+    end
+
+    # The provider ID of the public storefront with this slug, or '' if there is none.
+    def storefront_provider_id(client, slug)
+      (client.get_public_storefront(slug) || {})["providerId"].to_s
+    rescue APIError => e
+      raise unless e.not_found?
+
+      ""
+    end
+
     # Returns [offers, located]: offers sorted best first, and how many matched
     # the location before the capability and IPv6 filters.
+    #
+    # provider is a provider ID, storefront slug or provider name (see
+    # resolve_provider); provider_id takes precedence over it.
     def find_offers(client, plan_code, country, city, billing_type: "usage", provider_id: nil,
-      require_capabilities: [], require_ipv6: false, sort: "price")
+      require_capabilities: [], require_ipv6: false, sort: "price", provider: nil)
+      provider_name = nil
+      provider_id, provider_name = resolve_provider(client, provider) if provider_id.to_s.empty? && !provider.to_s.strip.empty?
       billing = BILLING_TYPES.fetch(billing_type.to_s, "")
       found = []
       if provider_id.to_s.empty?
@@ -67,9 +97,7 @@ module NoderingsVagrant
               p["ipv6AvailableInFilteredRegion"], p["planPrices"])
           end
       else
-        p = client.get(
-          "/v1/marketplace/providers/#{NoderingsVagrant.escape(provider_id)}"
-        )
+        p = client.get_provider(provider_id) || {}
         info = p["provider"] || {}
         (p["availablePlans"] || []).each do |pl|
           next if pl["planCode"] != plan_code || (!billing.empty? && pl["billingType"] != billing)
@@ -78,6 +106,14 @@ module NoderingsVagrant
           (pl["regions"] || []).select { |r| same_place?(r, country, city) }.each do |r|
             found << offer(info, pl["planId"], r["regionId"], pl["billingType"], p["hasIpv6"], pl["planPrices"])
           end
+        end
+      end
+      if provider_name
+        want = provider_name.downcase
+        found = found.select { |o| o["provider_name"].to_s.strip.downcase == want }
+        if found.map { |o| o["provider_id"] }.uniq.length > 1
+          raise UsageError, "more than one provider is named #{provider_name}; give its provider ID or " \
+                            "storefront slug instead"
         end
       end
       located = found.length
@@ -109,8 +145,9 @@ module NoderingsVagrant
       }
     end
 
-    def no_offer_message(plan_code, country, city, billing_type, located)
+    def no_offer_message(plan_code, country, city, billing_type, located, provider = nil)
       msg = "No offer for plan code #{plan_code} in #{city}, #{country}"
+      msg += " from provider #{provider}" unless provider.to_s.empty?
       msg += " with billing type #{billing_type}" unless billing_type.to_s.empty?
       msg += "."
       msg += " #{located} offer(s) matched the location but not the required capabilities or IPv6." if located > 0
@@ -208,14 +245,20 @@ module NoderingsVagrant
     end
 
     # Returns [plan_id, region_id, offer] for the best matching offer.
+    #
+    # provider limits the offers to one provider, given by ID, storefront slug or name.
     def choose_offer(client, plan_code, country, city, billing_type: "usage", provider_id: nil,
-      require_capabilities: [], require_ipv6: false, sort: "price")
+      require_capabilities: [], require_ipv6: false, sort: "price", provider: nil)
       offers, located = Marketplace.find_offers(
         client, plan_code, country, city,
         billing_type: billing_type, provider_id: provider_id,
-        require_capabilities: require_capabilities, require_ipv6: require_ipv6, sort: sort
+        require_capabilities: require_capabilities, require_ipv6: require_ipv6, sort: sort,
+        provider: provider
       )
-      raise UsageError, Marketplace.no_offer_message(plan_code, country, city, billing_type, located) if offers.empty?
+      if offers.empty?
+        named = provider_id.to_s.empty? ? provider.to_s.strip : provider_id
+        raise UsageError, Marketplace.no_offer_message(plan_code, country, city, billing_type, located, named)
+      end
 
       best = offers.first
       [best["plan_id"], best["region_id"], best]

@@ -22,8 +22,10 @@ module VagrantPlugins
       attr_accessor :billing_type
       # @return [String] price (cheapest) or rating (best rated)
       attr_accessor :sort
-      # @return [String] only consider offers from this provider
+      # @return [String] only consider offers from the provider with this ID (wins over hosting_provider)
       attr_accessor :provider_id
+      # @return [String] only consider offers from this provider, given by ID, storefront slug or name
+      attr_accessor :hosting_provider
       # @return [String] exact plan ID, instead of plan, country and city
       attr_accessor :plan_id
       # @return [String] exact region ID, with plan_id
@@ -52,6 +54,7 @@ module VagrantPlugins
         @billing_type = UNSET_VALUE
         @sort = UNSET_VALUE
         @provider_id = UNSET_VALUE
+        @hosting_provider = UNSET_VALUE
         @plan_id = UNSET_VALUE
         @region_id = UNSET_VALUE
         @distro = UNSET_VALUE
@@ -72,7 +75,7 @@ module VagrantPlugins
         @ssh_keys = [] if @ssh_keys == UNSET_VALUE
         @tags = ["vagrant"] if @tags == UNSET_VALUE
         @wait_timeout = 900 if @wait_timeout == UNSET_VALUE
-        %i[plan country city provider_id plan_id region_id hostname firewall_ruleset].each do |name|
+        %i[plan country city provider_id hosting_provider plan_id region_id hostname firewall_ruleset].each do |name|
           instance_variable_set("@#{name}", nil) if instance_variable_get("@#{name}") == UNSET_VALUE
         end
         @ssh_keys = Array(@ssh_keys)
