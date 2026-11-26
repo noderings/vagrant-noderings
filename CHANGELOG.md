@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file. The format foll
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.0](https://github.com/noderings/vagrant-noderings/compare/v0.1.0...v0.2.0) (2026-11-26)
+
+
+### Features
+
+* choose the provider of Vagrant servers ([#4](https://github.com/noderings/vagrant-noderings/issues/4)) ([3a583f4](https://github.com/noderings/vagrant-noderings/commit/3a583f4746afa5ec60e2c20940b8813d1fa444dd))
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-11-25
