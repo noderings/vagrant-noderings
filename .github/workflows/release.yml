@@ -35,6 +35,7 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      attestations: write
     environment:
       name: rubygems
       url: https://rubygems.org/gems/vagrant-noderings
@@ -77,6 +78,11 @@ jobs:
           version="${TAG#v}"
           gem build "${GEM_NAME}.gemspec"
           gem push "${GEM_NAME}-${version}.gem"
+      - name: Attest build provenance
+        if: steps.exists.outputs.published != 'true'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: "${{ env.GEM_NAME }}-*.gem"
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
