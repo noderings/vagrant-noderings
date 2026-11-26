@@ -1,34 +1,88 @@
 ---
-# Publishes the gem to RubyGems.org when a vX.Y.Z tag is pushed, with RubyGems
-# trusted publishing (no API key stored in GitHub).
+# Publishes the gem to RubyGems.org when a vX.Y.Z tag is pushed, using
+# RubyGems trusted publishing (no API key stored in GitHub).
 #
-# Before the first release, add a trusted publisher on rubygems.org:
-#   rubygems.org, your profile, Trusted publishers (or "pending trusted publishers" for a new gem)
-#   repository: noderings/vagrant-noderings, workflow: release.yml, environment: rubygems
+# The first release uses a pending trusted publisher on the noderings
+# RubyGems.org account (immutable owner ID 256963). After that, the same
+# workflow stays as a trusted publisher on the gem.
+#
+# To retry, open Actions, Release, "Run workflow", and pick the tag under
+# "Use workflow from".
 name: release
 
 "on":
   push:
     tags: ["v*.*.*"]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.ref_name }}
+  GEM_NAME: vagrant-noderings
 
 jobs:
   rubygems:
+    name: Push to RubyGems.org
     runs-on: ubuntu-latest
-    environment: rubygems
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+    environment:
+      name: rubygems
+      url: https://rubygems.org/gems/vagrant-noderings
     steps:
-      - uses: actions/checkout@v4
+      - name: Check this runs for a version tag
+        run: |
+          case "${TAG}" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::Run this workflow from a vX.Y.Z tag, not ${TAG}."; exit 1 ;;
+          esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the tag matches the gem version
+        run: |
+          version=$(sed -n 's/.*VERSION = "\([^"]*\)".*/\1/p' lib/vagrant-noderings/version.rb | head -1)
+          test "v${version}" = "${TAG}" || { echo "::error::Tag ${TAG} does not match gem version ${version}."; exit 1; }
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4"
-          bundler-cache: true
-      - uses: rubygems/release-gem@v1
+      - name: Check the version is not on RubyGems yet
+        id: exists
+        run: |
+          version="${TAG#v}"
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://rubygems.org/api/v2/rubygems/${GEM_NAME}/versions/${version}.json")
+          if [ "${code}" = "200" ]; then
+            echo "::notice::${GEM_NAME} ${version} is already on RubyGems.org, nothing to push."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      # owner is required for the first push of a pending trusted publisher.
+      - uses: rubygems/configure-rubygems-credentials@c6ca7f4bac0e29c9bde8eeae0a0a986b27efa05f # v2.2.0
+        if: steps.exists.outputs.published != 'true'
         with:
-          await-release: true
-      - name: GitHub release
+          owner: "256963"
+      - name: Build and push the gem
+        if: steps.exists.outputs.published != 'true'
+        run: |
+          version="${TAG#v}"
+          gem build "${GEM_NAME}.gemspec"
+          gem push "${GEM_NAME}-${version}.gem"
+      - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes "See CHANGELOG.md." --verify-tag || true
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if ! gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release create "${TAG}" --verify-tag --draft --title "${TAG}" --notes "See CHANGELOG.md."
+          fi
+          gh release edit "${TAG}" --draft=false --latest
