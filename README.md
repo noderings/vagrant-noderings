@@ -151,6 +151,10 @@ NODERINGS_TOKEN=... vagrant up --provider=noderings
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Related
+
+The [Go SDK](https://github.com/noderings/noderings-go) is the official Go client for the NodeRings API.
+
 ## License
 
 Copyright NodeRings. Licensed under the [Apache License, Version 2.0](LICENSE).
